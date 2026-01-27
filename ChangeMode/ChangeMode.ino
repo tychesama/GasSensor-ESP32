@@ -13,7 +13,7 @@ const unsigned long debounceDelay = 40;  // ms
 
 // Send Data
 static unsigned long lastSend = 0;
-const unsigned long sendInterval = 1000; // 1 second
+const unsigned long sendInterval = 1000;  // 1 second
 
 // Sensor pins
 #define TEMP_PIN A0
@@ -35,7 +35,7 @@ void setup() {
   pinMode(BTN_PREV, INPUT_PULLUP);
 
   // Serial for virtual terminal
-  Serial.begin(2400); 
+  Serial.begin(2400);
 
   showMode();
 }
@@ -78,24 +78,22 @@ void loop() {
 
   // Send Data
   if (millis() - lastSend >= sendInterval) {
-  lastSend = millis();
+    lastSend = millis();
 
-  float tempC = analogRead(TEMP_PIN) * (3.3 / 1023.0) * 100.0;
+    float tempC = analogRead(TEMP_PIN) * (3.3 / 1023.0) * 100.0;
 
-  int humVal = analogRead(HUMIDITY_PIN);
-  float voltage = humVal * (3.3 / 1023.0);
-  float humPercent = (voltage - 0.8) * (100.0 / (3.0 - 0.8));
-  humPercent = constrain(humPercent, 0, 100);
+    int humVal = analogRead(HUMIDITY_PIN);
+    float humPercent = humVal * 100.0 / 1023.0;
 
-  int gasVal = analogRead(GAS_PIN);
+    int gasVal = analogRead(GAS_PIN);
 
-  Serial.print("T,");
-  Serial.print(tempC, 1);
-  Serial.print(",H,");
-  Serial.print(humPercent, 0);
-  Serial.print(",G,");
-  Serial.println(gasVal);
-}
+    Serial.print("T,");
+    Serial.print(tempC, 1);
+    Serial.print(",H,");
+    Serial.print(humPercent, 0);
+    Serial.print(",G,");
+    Serial.println(gasVal);
+  }
 }
 
 
@@ -104,29 +102,26 @@ void showMode() {
   lcd.clear();
   lcd.setCursor(0, 0);
 
-  if (mode == 0)  
-  {
+  if (mode == 0) {
     lcd.print("Temp: ");
-    float tempC = analogRead(TEMP_PIN) * (3.3 / 1023.0) * 100.0;  
+    float tempC = analogRead(TEMP_PIN) * (3.3 / 1023.0) * 100.0;
     lcd.setCursor(0, 1);
-    lcd.print(tempC, 1);   
-    lcd.print((char)223);  
+    lcd.print(tempC, 1);
+    lcd.print((char)223);
     lcd.print("C");
   } else if (mode == 1)  // Humidity
   {
     lcd.print("Humidity:");
-    int humVal = analogRead(HUMIDITY_PIN);  
-    float voltage = humVal * (3.3 / 1023.0);
-    float humPercent = (voltage - 0.8) * (100.0 / (3.0 - 0.8));
-    humPercent = constrain(humPercent, 0, 100);
+    int humVal = analogRead(HUMIDITY_PIN);
+    float humPercent = humVal * 100.0 / 1023.0;
     lcd.setCursor(0, 1);
     lcd.print(humPercent, 0);
     lcd.print("%");
   } else if (mode == 2)  // Gas
   {
     lcd.print("Gas Level:");
-    int gasVal = analogRead(GAS_PIN);  
+    int gasVal = analogRead(GAS_PIN);
     lcd.setCursor(0, 1);
-    lcd.print(gasVal);  
+    lcd.print(gasVal);
   }
 }
