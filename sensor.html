@@ -74,10 +74,11 @@
         .info-panel {
             margin-top: 30px;
             width: 450px;
+            height: 100%;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            justify-content: space-between;
         }
 
         .status {
@@ -110,18 +111,17 @@
         #tempInfo,
         #humInfo,
         #gasInfo {
-            font-size: 14px;
+            font-size: 24px;
             color: #444;
             line-height: 1.4;
         }
 
         .information {
-            margin-top: 20px;
+            margin-bottom: 65px;
             font-size: 13px;
             color: #555;
             line-height: 1.5;
             border-top: 1px solid #ddd;
-            padding-top: 10px;
         }
     </style>
 
@@ -140,11 +140,13 @@
     <div class="tab-content active" id="tempTab">
         <div class="chart-container"><canvas id="tempChart"></canvas></div>
         <div class="info-panel">
-            <div id="tempStatus" class="status">Status: <span id="tempStatusText">--</span></div>
-            <div id="tempValue" class="filler">Current Temperature: -- °C</div>
-            <div id="tempTime" class="filler">Time: --</div>
-            <div id="tempInfo" class="filler">--</div>
-            <div class="information" style="margin-top:20px; font-size:13px; color:#555;">
+            <div>
+                <div id="tempStatus" class="status">Status: <span id="tempStatusText">--</span></div>
+                <div id="tempValue" class="filler">Current Temperature: -- °C</div>
+                <div id="tempTime" class="filler">Time: --</div>
+                <div id="tempInfo" class="filler">--</div>
+            </div>
+            <div class="information" style="font-size:13px; color:#555;">
                 Temperature Guidelines:<br>
                 &lt; 10°C - Very Cold, risk of hypothermia<br>
                 10°C - 33°C - Normal, comfortable range<br>
@@ -159,11 +161,13 @@
     <div class="tab-content" id="humTab">
         <div class="chart-container"><canvas id="humChart"></canvas></div>
         <div class="info-panel">
-            <div id="humStatus" class="status">Status: <span id="humStatusText">--</span></div>
-            <div id="humValue" class="filler">Current Humidity: -- °C</div>
-            <div id="humTime" class="filler">Time: --</div>
-            <div id="humInfo" class="filler">--</div>
-            <div class="information" style="margin-top:20px; font-size:13px; color:#555;">
+            <div>
+                <div id="humStatus" class="status">Status: <span id="humStatusText">--</span></div>
+                <div id="humValue" class="filler">Current Humidity: -- °C</div>
+                <div id="humTime" class="filler">Time: --</div>
+                <div id="humInfo" class="filler">--</div>
+            </div>
+            <div class="information" style="font-size:13px; color:#555;">
                 Humidity Guidelines:<br>
                 &lt; 10% - Extremely Dry, risk of dry skin and respiratory irritation<br>
                 10% - 18% - Very Dry, may cause discomfort, use humidifier<br>
@@ -180,11 +184,14 @@
     <div class="tab-content" id="gasTab">
         <div class="chart-container"><canvas id="gasChart"></canvas></div>
         <div class="info-panel">
-            <div id="gasStatus" class="status">Status: <span id="gasStatusText">--</span></div>
-            <div id="gasValue" class="filler">Current Gas Level: -- °C</div>
-            <div id="gasTime" class="filler">Time: --</div>
-            <div id="gasInfo" class="filler">--</div>
-            <div class="information" style="margin-top:20px; font-size:13px; color:#555;">
+            <div>
+                <div id="gasStatus" class="status">Status: <span id="gasStatusText">--</span></div>
+                <div id="gasValue" class="filler">Current Gas Level: -- °C</div>
+                <div id="gasTime" class="filler">Time: --</div>
+                <div id="gasInfo" class="filler">--</div>
+            </div>
+
+            <div class="information" style="font-size:13px; color:#555;">
                 Gas Level Guidelines:<br>
                 &lt; 600 - Normal, safe levels<br>
                 600 - 799 - Caution, levels elevated, ventilate area<br>
