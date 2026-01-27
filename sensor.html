@@ -2,92 +2,234 @@
 <html>
 
 <head>
-    <title>Real-Time Sensors</title>
+    <title>Real-Time Sensors Tabs</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0"></script>
+    <link rel="stylesheet" href="/sensors.css">
 
     <style>
         body {
             font-family: Arial;
             background: #f4f6f8;
-            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: start;
+            margin-top: 20px;
+            margin-left: 52px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            cursor: pointer;
+            background: #ddd;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .tab-button.active {
+            background: #fff;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-top: none;
+            margin: auto auto 50px auto;
+            padding: 20px;
+            width: 1800px;
+            height: 600px;
+            box-sizing: border-box;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .chart-container {
+            width: 1100px;
         }
 
         canvas {
-            background: white;
-            width: 50vw;
-            height: 400px;
-            margin: 30px auto;
-            display: block;
+            width: 100% !important;
+            height: 100% !important;
         }
 
-        #status {
-            font-size: 20px;
+        .info-panel {
+            width: 450px;
+            box-sizing: border-box;
+        }
+
+        .status {
+            font-size: 18px;
             font-weight: bold;
-            margin: 10px;
+            margin-bottom: 10px;
+        }
+
+        .filler {
+            font-size: 14px;
+            color: #333;
         }
     </style>
 </head>
 
 <body>
+    <h2 style="text-align:center;">Real-Time Sensor Monitoring</h2>
 
-    <h2>Real-Time Sensor Monitoring</h2>
-    <div id="status">Temperature Status: --</div>
+    <div class="tabs">
+        <div class="tab-button active" data-tab="tempTab">Temperature</div>
+        <div class="tab-button" data-tab="humTab">Humidity</div>
+        <div class="tab-button" data-tab="gasTab">Gas</div>
+    </div>
 
-    <canvas id="tempChart"></canvas>
-    <canvas id="humChart"></canvas>
-    <canvas id="gasChart"></canvas>
+    <!-- Temperature Tab -->
+    <div class="tab-content active" id="tempTab">
+        <div class="chart-container"><canvas id="tempChart"></canvas></div>
+        <div class="info-panel">
+            <div id="tempStatus" class="status">Status: --</div>
+            <div class="filler">
+                Temperature measures ambient environment in °C. Green = normal comfort range. Blue = too cold,
+                yellow/orange/red = caution/danger zones. This panel can also hold extra info or instructions.
+            </div>
+        </div>
+    </div>
+
+    <!-- Humidity Tab -->
+    <div class="tab-content" id="humTab">
+        <div class="chart-container"><canvas id="humChart"></canvas></div>
+        <div class="info-panel">
+            <div id="humStatus" class="status">Status: --</div>
+            <div class="filler">
+                Humidity is measured in %RH. Green = normal range. Yellow/orange/red = dry or excessively humid. Proper
+                humidity is important for comfort and device operation.
+            </div>
+        </div>
+    </div>
+
+    <!-- Gas Tab -->
+    <div class="tab-content" id="gasTab">
+        <div class="chart-container"><canvas id="gasChart"></canvas></div>
+        <div class="info-panel">
+            <div id="gasStatus" class="status">Status: --</div>
+            <div class="filler">
+                Gas levels are measured as raw sensor values (0-1023). Green = safe, yellow/orange/red = increasing
+                danger. Monitor air quality regularly for safety.
+            </div>
+        </div>
+    </div>
 
     <script>
-        function tempStatus(t) {
-            if (t >= 50) return ["EXTREME DANGER", "red"];
-            if (t >= 42) return ["DANGER", "orange"];
-            if (t >= 33) return ["CAUTION", "gold"];
-            if (t >= 27) return ["OK", "green"];
-            return ["NORMAL", "green"];
+        // ------------------ TAB LOGIC ------------------
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ------------------ SENSOR FUNCTIONS ------------------
+        async function loadHistory(chart, key) {
+            const res = await fetch('/history');
+            const data = await res.json();
+            data.forEach(d => {
+                chart.data.datasets[0].data.push({
+                    x: new Date(d.x).getTime(),
+                    y: d[key]
+                });
+            });
+            chart.update('none');
         }
 
-        const backgroundZones = {
-            id: 'backgroundZones',
-            beforeDraw(chart) {
-                if (chart.canvas.id !== "tempChart") return;
+        function tempStatus(t) {
+            if (t < 10) return ["TOO COLD", "blue"];
+            if (t <= 33) return ["NORMAL", "green"];
+            if (t <= 42) return ["CAUTION", "gold"];
+            if (t <= 50) return ["DANGER", "orange"];
+            return ["EXTREME DANGER", "red"];
+        }
 
-                const { ctx, chartArea, scales } = chart;
-                if (!chartArea) return;
+        function humStatus(h) {
+            if (h < 10) return ["EXTREME DRY", "red"];
+            if (h < 18) return ["VERY DRY", "orange"];
+            if (h < 35) return ["DRY", "yellow"];
+            if (h <= 60) return ["NORMAL", "green"];
+            if (h <= 75) return ["HUMID", "yellow"];
+            if (h <= 85) return ["VERY HUMID", "orange"];
+            return ["EXTREME HUMID", "red"];
+        }
 
-                const y = scales.y;
-                const zones = [
-                    { from: 50, to: y.max, color: 'rgba(255,0,0,0.2)' },
-                    { from: 42, to: 50, color: 'rgba(255,165,0,0.2)' },
-                    { from: 33, to: 42, color: 'rgba(255,255,0,0.25)' },
-                    { from: 27, to: 33, color: 'rgba(144,238,144,0.3)' }
-                ];
+        function gasStatus(g) {
+            if (g < 600) return ["NORMAL", "green"];
+            if (g < 800) return ["CAUTION", "yellow"];
+            if (g < 900) return ["DANGER", "orange"];
+            return ["EXTREME DANGER", "red"];
+        }
 
-                zones.forEach(z => {
-                    ctx.fillStyle = z.color;
-                    ctx.fillRect(
-                        chartArea.left,
-                        y.getPixelForValue(z.from),
-                        chartArea.right - chartArea.left,
-                        y.getPixelForValue(z.to) - y.getPixelForValue(z.from)
-                    );
-                });
-            }
-        };
+        function createZones(chartId, zones) {
+            return {
+                id: chartId + '_zones',
+                beforeDraw(chart) {
+                    if (chart.canvas.id !== chartId) return;
+                    const { ctx, chartArea, scales } = chart;
+                    if (!chartArea) return;
+                    const y = scales.y;
+                    zones.forEach(z => {
+                        ctx.fillStyle = z.color;
+                        ctx.fillRect(
+                            chartArea.left,
+                            y.getPixelForValue(z.from),
+                            chartArea.right - chartArea.left,
+                            y.getPixelForValue(z.to) - y.getPixelForValue(z.from)
+                        );
+                    });
+                }
+            };
+        }
 
-        function createChart(canvasId, label, yMax) {
-            return new Chart(document.getElementById(canvasId), {
+        const tempZones = [
+            { from: 50, to: 70, color: 'rgba(255,0,0,0.2)' },
+            { from: 42, to: 50, color: 'rgba(255,165,0,0.2)' },
+            { from: 33, to: 42, color: 'rgba(255,255,0,0.2)' },
+            { from: 10, to: 33, color: 'rgba(144,238,144,0.3)' },
+            { from: 0, to: 10, color: 'rgba(0,0,255,0.2)' }
+        ];
+
+        const humZones = [
+            { from: 0, to: 10, color: 'rgba(255,0,0,0.2)' },
+            { from: 10, to: 18, color: 'rgba(255,165,0,0.2)' },
+            { from: 18, to: 35, color: 'rgba(255,255,0,0.2)' },
+            { from: 35, to: 60, color: 'rgba(144,238,144,0.3)' },
+            { from: 60, to: 75, color: 'rgba(255,255,0,0.2)' },
+            { from: 75, to: 85, color: 'rgba(255,165,0,0.2)' },
+            { from: 85, to: 100, color: 'rgba(255,0,0,0.2)' }
+        ];
+
+        const gasZones = [
+            { from: 0, to: 600, color: 'rgba(144,238,144,0.3)' },
+            { from: 600, to: 800, color: 'rgba(255,255,0,0.2)' },
+            { from: 800, to: 900, color: 'rgba(255,165,0,0.2)' },
+            { from: 900, to: 1023, color: 'rgba(255,0,0,0.2)' }
+        ];
+
+        function createChart(canvasId, label, yMax, statusFunc, zones) {
+            const chart = new Chart(document.getElementById(canvasId), {
                 type: 'line',
-                data: {
-                    datasets: [{
-                        label,
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        data: []
-                    }]
-                },
+                data: { datasets: [{ label, borderWidth: 2, pointRadius: 0, data: [] }] },
                 options: {
                     scales: {
                         x: {
@@ -95,46 +237,43 @@
                             realtime: {
                                 duration: 100000,
                                 refresh: 1000,
-                                delay: 2000,
-                                onRefresh: chart => {
+                                delay: -5000,
+                                onRefresh: c => {
                                     fetch('/data')
                                         .then(r => r.json())
                                         .then(d => {
                                             const now = Date.now();
-
-                                            if (canvasId === "tempChart") {
-                                                chart.data.datasets[0].data.push({ x: now, y: d.temp });
-                                                const [text, color] = tempStatus(d.temp);
-                                                document.getElementById("status").textContent = "Status: " + text;
-                                                document.getElementById("status").style.color = color;
+                                            let val;
+                                            if (canvasId === "tempChart") val = d.temp;
+                                            else if (canvasId === "humChart") val = d.hum;
+                                            else if (canvasId === "gasChart") val = d.gas;
+                                            chart.data.datasets[0].data.push({ x: now, y: val });
+                                            if (statusFunc) {
+                                                const [text, color] = statusFunc(val);
+                                                document.getElementById(canvasId.replace('Chart', 'Status')).textContent = "Status: " + text;
+                                                document.getElementById(canvasId.replace('Chart', 'Status')).style.color = color;
                                             }
-
-                                            if (canvasId === "humChart")
-                                                chart.data.datasets[0].data.push({ x: now, y: d.hum });
-
-                                            if (canvasId === "gasChart")
-                                                chart.data.datasets[0].data.push({ x: now, y: d.gas });
                                         });
                                 }
                             }
                         },
-                        y: {
-                            min: 0,
-                            max: yMax,
-                            title: { display: true, text: label }
-                        }
+                        y: { min: 0, max: yMax, title: { display: true, text: label } }
                     }
-                }
+                },
+                plugins: [createZones(canvasId, zones)]
             });
+            return chart;
         }
 
-        createChart("tempChart", "Temperature (°C)", 100);
-        createChart("humChart", "Humidity (%)", 100);
-        createChart("gasChart", "Gas Level", 1000);
+        const tempChart = createChart("tempChart", "Temperature (°C)", 70, tempStatus, tempZones);
+        const humChart = createChart("humChart", "Humidity (%)", 100, humStatus, humZones);
+        const gasChart = createChart("gasChart", "Gas Level (ADC)", 1023, gasStatus, gasZones);
 
-        Chart.register(backgroundZones);
+        loadHistory(tempChart, "temp");
+        loadHistory(humChart, "hum");
+        loadHistory(gasChart, "gas");
+
     </script>
-
 </body>
 
 </html>
