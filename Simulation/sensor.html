@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Real-Time Sensors Tabs</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0"></script>
+    <link rel="stylesheet" href="/sensors.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: start;
+            margin-top: 20px;
+            margin-left: 52px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            cursor: pointer;
+            background: #ddd;
+            border-radius: 5px 5px 0 0;
+            transition: background 0.2s;
+        }
+
+        .tab-button:hover {
+            background: #ccc;
+        }
+
+        .tab-button.active {
+            background: #fff;
+            font-weight: bold;
+            border-bottom: 1px solid #fff;
+        }
+
+        .tab-content {
+            display: none;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-top: none;
+            margin: auto auto 50px auto;
+            padding: 20px;
+            width: 1800px;
+            height: 600px;
+            box-sizing: border-box;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .chart-container {
+            width: 1100px;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .info-panel {
+            margin-top: 30px;
+            width: 450px;
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .status {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .filler {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        #tempValue,
+        #humValue,
+        #gasValue {
+            font-size: 15px;
+            font-weight: 500;
+            color: #222;
+        }
+
+        #tempTime,
+        #humTime,
+        #gasTime {
+            font-size: 13px;
+            color: #666;
+        }
+
+        #tempInfo,
+        #humInfo,
+        #gasInfo {
+            font-size: 24px;
+            color: #444;
+            line-height: 1.4;
+        }
+
+        .information {
+            margin-bottom: 65px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h2 style="text-align:center;">Real-Time Sensor Monitoring</h2>
+
+    <div class="tabs">
+        <div class="tab-button active" data-tab="tempTab">Temperature</div>
+        <div class="tab-button" data-tab="humTab">Humidity</div>
+        <div class="tab-button" data-tab="gasTab">Gas</div>
+    </div>
+
+    <!-- Temperature Tab -->
+    <div class="tab-content active" id="tempTab">
+        <div class="chart-container"><canvas id="tempChart"></canvas></div>
+        <div class="info-panel">
+            <div>
+                <div id="tempStatus" class="status">Status: <span id="tempStatusText">--</span></div>
+                <div id="tempValue" class="filler">Current Temperature: -- °C</div>
+                <div id="tempTime" class="filler">Time: --</div>
+                <div id="tempInfo" class="filler">--</div>
+            </div>
+            <div class="information" style="font-size:13px; color:#555;">
+                Temperature Guidelines:<br>
+                &lt; 10°C - Very Cold, risk of hypothermia<br>
+                10°C - 33°C - Normal, comfortable range<br>
+                34°C - 42°C - Warm, mild heat, stay hydrated<br>
+                43°C - 50°C - High temperature, limit physical activity<br>
+                &gt; 50°C - Extreme heat, stay indoors
+            </div>
+        </div>
+    </div>
+
+    <!-- Humidity Tab -->
+    <div class="tab-content" id="humTab">
+        <div class="chart-container"><canvas id="humChart"></canvas></div>
+        <div class="info-panel">
+            <div>
+                <div id="humStatus" class="status">Status: <span id="humStatusText">--</span></div>
+                <div id="humValue" class="filler">Current Humidity: -- °C</div>
+                <div id="humTime" class="filler">Time: --</div>
+                <div id="humInfo" class="filler">--</div>
+            </div>
+            <div class="information" style="font-size:13px; color:#555;">
+                Humidity Guidelines:<br>
+                &lt; 10% - Extremely Dry, risk of dry skin and respiratory irritation<br>
+                10% - 18% - Very Dry, may cause discomfort, use humidifier<br>
+                19% - 34% - Dry, mild discomfort possible<br>
+                35% - 60% - Normal, comfortable range<br>
+                61% - 75% - Humid, may feel sticky, ensure ventilation<br>
+                76% - 85% - Very Humid, risk of condensation and discomfort<br>
+                &gt; 85% - Extremely Humid, risk of mold growth and respiratory issues
+            </div>
+        </div>
+    </div>
+
+    <!-- Gas Tab -->
+    <div class="tab-content" id="gasTab">
+        <div class="chart-container"><canvas id="gasChart"></canvas></div>
+        <div class="info-panel">
+            <div>
+                <div id="gasStatus" class="status">Status: <span id="gasStatusText">--</span></div>
+                <div id="gasValue" class="filler">Current Gas Level: -- °C</div>
+                <div id="gasTime" class="filler">Time: --</div>
+                <div id="gasInfo" class="filler">--</div>
+            </div>
+
+            <div class="information" style="font-size:13px; color:#555;">
+                Gas Level Guidelines:<br>
+                &lt; 600 - Normal, safe levels<br>
+                600 - 799 - Caution, levels elevated, ventilate area<br>
+                800 - 899 - Danger, high gas, minimize exposure and ventilate immediately<br>
+                &gt;= 900 - Extreme Danger, very high gas, evacuate area and seek assistance
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ------------------ TAB LOGIC ------------------
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ------------------ SENSOR FUNCTIONS ------------------
+        async function loadHistory(chart, key) {
+            const res = await fetch('/history');
+            const data = await res.json();
+            data.forEach(d => {
+                chart.data.datasets[0].data.push({
+                    x: new Date(d.x).getTime(),
+                    y: d[key]
+                });
+            });
+            chart.update('none');
+        }
+
+        function updateSensorInfo(chartId, val, statusFunc, unit = "") {
+            if (!statusFunc) return;
+
+            const [statusText, color, advice] = statusFunc(val);
+
+            // Status
+            const statusSpan = document.getElementById(chartId.replace('Chart', 'StatusText'));
+            if (statusSpan) {
+                statusSpan.textContent = statusText;
+                statusSpan.style.color = color;
+            }
+
+            // Current value
+            const valueDiv = document.getElementById(chartId.replace('Chart', 'Value'));
+            if (valueDiv) valueDiv.textContent = `Current: ${val.toFixed(1)} ${unit}`;
+
+            // Time
+            const timeDiv = document.getElementById(chartId.replace('Chart', 'Time'));
+            if (timeDiv) timeDiv.textContent = `Time: ${new Date().toLocaleTimeString()}`;
+
+            // Advice/info
+            const infoDiv = document.getElementById(chartId.replace('Chart', 'Info'));
+            if (infoDiv) infoDiv.textContent = advice;
+        }
+
+
+
+        function tempStatus(t) {
+            if (t < 10)
+                return ["TOO COLD", "blue",
+                    "Temperature is very low. Wear heavy layers, gloves, and a hat. Risk of frostbite and hypothermia increases."];
+            if (t <= 33)
+                return ["NORMAL", "green",
+                    "Temperature is stable and comfortable. Light to moderate clothing is sufficient. Outdoor activity is safe."];
+            if (t <= 42)
+                return ["CAUTION", "gold",
+                    "Temperature is warm. Drink water regularly, wear breathable clothing, and avoid prolonged sun exposure. Mild heat exhaustion possible."];
+            if (t <= 50)
+                return ["DANGER", "orange",
+                    "High temperature. Minimize outdoor activity, stay hydrated, and wear light clothing. Risk of heat stroke is significant."];
+            return ["EXTREME DANGER", "red",
+                "Extreme heat. Stay indoors, use fans or AC, drink plenty of water, and avoid physical exertion. Monitor for heat stroke and dehydration."];
+        }
+
+        function humStatus(h) {
+            if (h < 10)
+                return ["EXTREMELY DRY", "red",
+                    "Humidity is extremely low. Air is very dry, which can cause dry skin, irritation of eyes and respiratory tract. Use a humidifier and drink plenty of water."];
+            if (h < 18)
+                return ["VERY DRY", "orange",
+                    "Air is very dry. Skin and throat may feel dry. Consider humidifying the environment and stay hydrated."];
+            if (h < 35)
+                return ["DRY", "yellow",
+                    "Humidity is low. Mild discomfort possible. Keep hydrated and monitor sensitive skin areas."];
+            if (h <= 60)
+                return ["NORMAL", "green",
+                    "Humidity is within the comfortable range. No special precautions needed."];
+            if (h <= 75)
+                return ["HUMID", "yellow",
+                    "Air is moderately humid. May feel slightly sticky. Ensure proper ventilation and stay hydrated."];
+            if (h <= 85)
+                return ["VERY HUMID", "orange",
+                    "Humidity is high. Can feel uncomfortable and may affect electronics or cause condensation. Stay cool and ventilate rooms."];
+            return ["EXTREMELY HUMID", "red",
+                "Humidity is extremely high. Risk of mold growth, respiratory discomfort, and overheating. Use dehumidifiers and avoid prolonged indoor exposure without ventilation."];
+        }
+
+
+        function gasStatus(g) {
+            if (g < 600)
+                return ["NORMAL", "green",
+                    "Gas levels are safe. No immediate action needed. Maintain proper ventilation for general safety."];
+            if (g < 800)
+                return ["CAUTION", "yellow",
+                    "Gas levels are elevated. Avoid prolonged exposure, ensure proper ventilation, and monitor readings closely."];
+            if (g < 900)
+                return ["DANGER", "orange",
+                    "Gas levels are high. Risk of health effects such as headache, dizziness, or irritation. Minimize exposure and ventilate the area immediately."];
+            return ["EXTREME DANGER", "red",
+                "Gas levels are extremely high. Immediate action required: evacuate the area, ventilate, and avoid inhalation. Seek assistance if needed."];
+        }
+
+        function createZones(chartId, zones) {
+            return {
+                id: chartId + '_zones',
+                beforeDraw(chart) {
+                    if (chart.canvas.id !== chartId) return;
+                    const { ctx, chartArea, scales } = chart;
+                    if (!chartArea) return;
+                    const y = scales.y;
+                    zones.forEach(z => {
+                        ctx.fillStyle = z.color;
+                        ctx.fillRect(
+                            chartArea.left,
+                            y.getPixelForValue(z.from),
+                            chartArea.right - chartArea.left,
+                            y.getPixelForValue(z.to) - y.getPixelForValue(z.from)
+                        );
+                    });
+                }
+            };
+        }
+
+        const tempZones = [
+            { from: 50, to: 70, color: 'rgba(255,0,0,0.2)' },
+            { from: 42, to: 50, color: 'rgba(255,165,0,0.2)' },
+            { from: 33, to: 42, color: 'rgba(255,255,0,0.2)' },
+            { from: 10, to: 33, color: 'rgba(144,238,144,0.3)' },
+            { from: 0, to: 10, color: 'rgba(0,0,255,0.2)' }
+        ];
+
+        const humZones = [
+            { from: 0, to: 10, color: 'rgba(255,0,0,0.2)' },
+            { from: 10, to: 18, color: 'rgba(255,165,0,0.2)' },
+            { from: 18, to: 35, color: 'rgba(255,255,0,0.2)' },
+            { from: 35, to: 60, color: 'rgba(144,238,144,0.3)' },
+            { from: 60, to: 75, color: 'rgba(255,255,0,0.2)' },
+            { from: 75, to: 85, color: 'rgba(255,165,0,0.2)' },
+            { from: 85, to: 100, color: 'rgba(255,0,0,0.2)' }
+        ];
+
+        const gasZones = [
+            { from: 0, to: 600, color: 'rgba(144,238,144,0.3)' },
+            { from: 600, to: 800, color: 'rgba(255,255,0,0.2)' },
+            { from: 800, to: 900, color: 'rgba(255,165,0,0.2)' },
+            { from: 900, to: 1023, color: 'rgba(255,0,0,0.2)' }
+        ];
+
+        function createChart(canvasId, label, yMax, statusFunc, zones) {
+            const chart = new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: { datasets: [{ label, borderWidth: 2, pointRadius: 0, data: [] }] },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'realtime',
+                            realtime: {
+                                duration: 100000,
+                                refresh: 1000,
+                                delay: -5000,
+                                onRefresh: c => {
+                                    fetch('/data')
+                                        .then(r => r.json())
+                                        .then(d => {
+                                            const now = Date.now();
+                                            let val, unit;
+                                            if (canvasId === "tempChart") { val = d.temp; unit = "°C"; }
+                                            else if (canvasId === "humChart") { val = d.hum; unit = "%"; }
+                                            else if (canvasId === "gasChart") { val = d.gas; unit = "ADC"; }
+
+                                            chart.data.datasets[0].data.push({ x: now, y: val });
+
+                                            // Update all info dynamically
+                                            updateSensorInfo(canvasId, val, statusFunc, unit);
+                                        });
+                                }
+                            }
+                        },
+                        y: { min: 0, max: yMax, title: { display: true, text: label } }
+                    }
+                },
+                plugins: [createZones(canvasId, zones)]
+            });
+            return chart;
+        }
+
+        const tempChart = createChart("tempChart", "Temperature (°C)", 70, tempStatus, tempZones);
+        const humChart = createChart("humChart", "Humidity (%)", 100, humStatus, humZones);
+        const gasChart = createChart("gasChart", "Gas Level (ADC)", 1023, gasStatus, gasZones);
+
+        loadHistory(tempChart, "temp");
+        loadHistory(humChart, "hum");
+        loadHistory(gasChart, "gas");
+
+    </script>
+</body>
+
+</html>
