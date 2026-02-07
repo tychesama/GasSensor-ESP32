@@ -3,7 +3,6 @@
 #include <DHT.h>
 
 // ===== LCD (I2C) =====
-// Change to 0x3F if your module uses that address
 #define LCD_ADDR 0x27
 LiquidCrystal_I2C lcd(LCD_ADDR, 16, 2);
 
@@ -13,10 +12,9 @@ LiquidCrystal_I2C lcd(LCD_ADDR, 16, 2);
 DHT dht(DHTPIN, DHTTYPE);
 
 // ===== MQ135 (Analog) =====
-// Use an ADC1 pin (32–35). 34 is common and safe.
 #define GAS_PIN 34
 
-byte mode = 0; // 0=Temp, 1=Humidity, 2=Gas
+byte mode = 0;  // 0=Temp, 1=Humidity, 2=Gas
 
 // Timing
 unsigned long lastSend = 0;
@@ -31,7 +29,7 @@ const unsigned long modeInterval = 3000;
 void showMode(float t, float h, int gas);
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(2400);
 
   // I2C pins for ESP32 DevKit V1
   Wire.begin(21, 22);
@@ -42,8 +40,8 @@ void setup() {
 
   dht.begin();
 
-  analogReadResolution(12);       // 0..4095
-  analogSetAttenuation(ADC_11db); // ~0..3.3V range
+  analogReadResolution(12);        // 0..4095
+  analogSetAttenuation(ADC_11db);  // ~0..3.3V range
 
   lcd.setCursor(0, 0);
   lcd.print("Starting...");
@@ -71,21 +69,19 @@ void loop() {
     showMode(t, h, gas);
   }
 
-  // Serial output every 1 second
+  // in loop(), replace the Serial output block with this:
   if (now - lastSend >= sendInterval) {
     lastSend = now;
 
-    if (isnan(t) || isnan(h)) {
-      Serial.print("DHT,FAIL,");
-    } else {
-      Serial.print("T,");
-      Serial.print(t, 1);
-      Serial.print(",H,");
-      Serial.print(h, 0);
-      Serial.print(",");
-    }
+    // If DHT fails, send -1 placeholders but KEEP the format
+    float outT = isnan(t) ? -1.0f : t;
+    int outH = isnan(h) ? -1 : (int)roundf(h);
 
-    Serial.print("G,");
+    Serial.print("T,");
+    Serial.print(outT, 1);
+    Serial.print(",H,");
+    Serial.print(outH);
+    Serial.print(",G,");
     Serial.println(gas);
   }
 }

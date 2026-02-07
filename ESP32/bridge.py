@@ -6,7 +6,7 @@ from datetime import datetime
 from flask import Flask, jsonify, send_from_directory
 
 # Open Python side of virtual COM
-ser = serial.Serial('COM1', 2400, timeout=1)
+ser = serial.Serial('COM5', 2400, timeout=1)
 
 data = {"temp": 0, "hum": 0, "gas": 0}
 
