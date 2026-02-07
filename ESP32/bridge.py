@@ -1,18 +1,13 @@
-import serial
-import threading
-import csv
-import os
+import csv, os
 from datetime import datetime
 from flask import Flask, jsonify, send_from_directory
 
-# Open Python side of virtual COM
-ser = serial.Serial('COM5', 2400, timeout=1)
+app = Flask(__name__)
 
 data = {"temp": 0, "hum": 0, "gas": 0}
-
 CSV_FILE = "sensor_data.csv"
 
-# Create CSV file with header if it doesn't exist
+# create file if not exist
 if not os.path.exists(CSV_FILE):
     with open(CSV_FILE, "w", newline="") as f:
         writer = csv.writer(f)
@@ -28,44 +23,22 @@ def save_to_csv(d):
             d["gas"]
         ])
 
-
-def read_serial():
-    while True:
-        try:
-            line = ser.readline().decode().strip()
-            if line:
-                print("Raw serial:", line)  
-            if line.startswith("T"):
-                parts = line.split(",")
-                data["temp"] = float(parts[1])
-                data["hum"]  = int(parts[3])
-                data["gas"]  = int(parts[5])
-                print("Parsed data:", data)  
-                save_to_csv(data)
-        except Exception as e:
-            print("Serial error:", e)
-
-threading.Thread(target=read_serial, daemon=True).start()
-
-app = Flask(__name__)
+@app.route("/ingest", methods=["POST"])
+def ingest():
+    payload = request.get_json(force=True, silent=True) or {}
+    try:
+        data["temp"] = float(payload.get("temp", data["temp"]))
+        data["hum"]  = int(payload.get("hum", data["hum"]))
+        data["gas"]  = int(payload.get("gas", data["gas"]))
+        save_to_csv(data)
+        return jsonify({"ok": True, "data": data})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
 
 @app.route("/data")
 def get_data():
-    try:
-        with open(CSV_FILE, "r") as f:
-            rows = list(csv.DictReader(f))
-            if rows:
-                last = rows[-1]
-                return jsonify({
-                    "temp": float(last["temp"]),
-                    "hum": int(last["hum"]),
-                    "gas": int(last["gas"])
-                })
-    except Exception as e:
-        print("CSV read error:", e)
-
     return jsonify(data)
-
+      
 @app.route("/")
 def index():
     return send_from_directory(".", "sensor.html")
@@ -84,5 +57,5 @@ def history():
             })
     return jsonify(rows)
 
-
-app.run(port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)
