@@ -12,7 +12,7 @@
 // ▶  EDIT THESE
 // ============================================================
 const char* AP_SSID = "ESP32-SENSORS";
-const char* AP_PASS = "12345678";        // min 8 chars; "" = open network
+const char* AP_PASS = "";        // min 8 chars; "" = open network
 // ============================================================
 
 WebServer server(80);
