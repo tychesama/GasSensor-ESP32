@@ -1,312 +1,128 @@
 # User Manual
 ## ESP32 Temperature, Humidity, and Gas Monitoring System
 
-**Course:** Architecture and Organization, 2nd Semester 2025  
-**Prepared for:** Christopher Aris Alviola  
-**Project Owner:** Jose Emmanuel "Joem" Ridpan
+Course: Architecture and Organization, 2nd Semester 2025  
+Prepared for: Christopher Aris Alviola  
+Project Owner / Support: Jose Emmanuel R. Idpan
 
 ---
 
 ## 1. Introduction
 
-This project is an ESP32-based environmental monitoring system designed to measure **temperature**, **humidity**, and **gas levels** using connected sensors. The system reads data from a **DHT11** sensor and an **MQ135** gas sensor, then displays the readings through a **local web dashboard** and sends telemetry to **Arduino Cloud**. It also stores session data using **Google Sheets with Google Apps Script** as the backend.
+This project is an ESP32-based monitoring system that measures temperature, humidity, and gas levels using connected sensors. The readings can be viewed through a local web dashboard and can also be saved for later review.
 
-### Purpose of the project
-- Monitor surrounding environmental conditions in real time
-- Provide a simple local dashboard accessible through a browser
-- Store sensor readings for later review
-- Demonstrate practical ESP32 integration with sensors, web interface, and cloud services
+### Purpose
+- Monitor environmental conditions in real time
+- View readings on a local website using the ESP32 device IP address
+- Save session data for later checking
+- Provide a simple academic prototype for monitoring and logging
 
-### Benefits of the monitoring system
-- Real-time visibility of temperature, humidity, and gas trends
-- Browser-based local dashboard with live graphs
-- Session-based data logging for record keeping
-- Cloud monitoring through Arduino Cloud
-- CSV export for saved data analysis
+### Benefits
+- Real-time monitoring of temperature, humidity, and gas
+- Browser-based access on devices connected to the same WiFi
+- Saved readings for later review
+- Simple setup for school project demonstration
 
 ---
 
 ## 2. Getting Started
 
-Before using the system, the user should understand that this project combines **hardware**, **firmware**, **local networking**, and **cloud logging**.
+Before using the device, prepare the following:
 
-### Prerequisites
-- ESP32 development board
-- DHT11 temperature and humidity sensor
-- MQ135 gas sensor module
-- Jumper wires or properly soldered hookup wires
-- USB Type-C cable for the ESP32
-- Laptop or PC with Arduino IDE installed
-- WiFi connection with internet access
-- Arduino Cloud account
-- Google account for Google Sheets and Apps Script
-- Enclosure with ventilation holes
+- A laptop or computer
+- A proper power source for the ESP32, such as a laptop USB port or safe USB adapter
+- A WiFi network
+- A Google account if you want to save and review data using Google Sheets
 
-### Important notes before starting
-- The ESP32 uses **3.3V logic**, so sensor wiring must be done carefully.
-- The **MQ135 analog output can be unsafe for ESP32 input if powered at 5V without protection**.
-- The enclosure should not be fully sealed because sensors need airflow.
-- This system is intended for **indoor or controlled use**, not outdoor deployment.
+### Important notes
+- The ESP32 and the viewing device must be connected to the same WiFi network
+- The device should be used in a dry, ventilated area
+- This system is for educational and prototype use
 
 ---
 
-## 3. Hardware Setup
+## 3. Device Setup and Access
 
-### Main hardware components
-- ESP32 board
-- DHT11 sensor
-- MQ135 gas sensor
-- USB Type-C cable
-- Enclosure with side or bottom ventilation holes
+This manual assumes the hardware is already assembled, soldered, and placed inside its enclosure.
 
-### Recommended wiring
+### Step-by-step setup
+1. Connect the ESP32 device to a laptop using USB.
+2. Power the device using a safe USB power source.
+3. Make sure the ESP32 is using the configured WiFi network.
+4. Connect the laptop or phone you will use for viewing to the same WiFi network.
+5. Open the Serial Monitor on the laptop.
+6. After the ESP32 connects to WiFi, it should show the local IP address.
+7. Open that IP address in a browser to access the monitoring website.
 
-#### DHT11
-- **VCC -> 3.3V**
-- **GND -> GND**
-- **DATA -> GPIO 4**
+### Optional Google Sheets setup
+If you want saved session data:
 
-If using a bare DHT11 and not a module, add a **10k pull-up resistor** from DATA to VCC.
+1. Use a Google account.
+2. Open the backend setup in `D:\repos\GasSensor-ESP32\GoogleSheets-Backend`
+3. Deploy the Apps Script backend as a Web App.
+4. Put the generated Web App URL in the ESP32 project settings.
 
-#### MQ135
-- **GND -> GND**
-- **AO -> GPIO 32**
-- **DO -> Not used**
-
-### MQ135 power options
-
-#### Safer option
-- **VCC -> 3.3V**
-- **AO -> GPIO 32 directly**
-
-#### Alternative option
-- **VCC -> 5V**
-- Use a **voltage divider** between AO and GPIO 32
-
-Example divider:
-- **20k resistor** from AO to GPIO32
-- **10k resistor** from GPIO32 to GND
-
-### Physical setup steps
-1. Place the ESP32 securely inside the enclosure.
-2. Position the DHT11 and MQ135 so they are exposed to air through the ventilation holes.
-3. Connect all wires according to the recommended wiring above.
-4. Inspect all joints and wiring before powering the system.
-5. Make sure there are **no solder bridges or shorts**.
-6. Connect the ESP32 using a **USB Type-C cable**.
-
-### Powering the device
-Accepted power sources:
-- Laptop USB port
-- Power bank
-- Proper 5V USB wall adapter
-
-Not recommended:
-- Directly improvising power from an outlet
-- Unregulated power sources
-
-Use only a proper USB power source.
+Repository reference: https://github.com/tychesama/GasSensor-ESP32
 
 ---
 
-## 4. Software Setup
+## 4. Using the Website
 
-### A. Install required software
-Install the following:
-- **Arduino IDE**
-- **ESP32 board package** by Espressif
-- Required libraries:
-  - `ArduinoIoTCloud`
-  - `Arduino_ConnectionHandler`
-  - `DHT sensor library`
-  - `Adafruit Unified Sensor`
+Once the website is open, the user can view the available monitoring features.
 
-### B. Open the project files
-Main sketch location:
-- `D:\repos\GasSensor-ESP32\ESP32_Cloud\ESP32_Cloud\ESP32_Cloud.ino`
+### Main functions
+- View live temperature, humidity, and gas readings
+- Review saved session data
+- Change the display between horizontal and vertical layouts
+- Check session-based history from the website
+- Download or review saved data if available in the current implementation
 
-Related files:
-- `D:\repos\GasSensor-ESP32\ESP32_Cloud\ESP32_Cloud\thingProperties.h`
-- `D:\repos\GasSensor-ESP32\ESP32_Cloud\ESP32_Cloud\arduino_secrets.h`
-- `D:\repos\GasSensor-ESP32\GoogleSheets-Backend\Code.gs`
-
-### C. Configure Arduino Cloud
-1. Go to `https://cloud.arduino.cc`
-2. Create or sign in to an Arduino account.
-3. Create a new **Thing**.
-4. Add a **3rd party ESP32 device**.
-5. Create the following cloud variables:
-   - `cloudTemperature` as float, Read Only
-   - `cloudHumidity` as float, Read Only
-   - `cloudGas` as float or numeric equivalent, Read Only
-6. Place the generated credentials in the project files if needed.
-7. Upload the sketch through Arduino IDE.
-
-### D. Configure WiFi and secrets
-In `arduino_secrets.h`, place:
-- WiFi SSID
-- WiFi password
-- Arduino Cloud device key
-- Google Apps Script backend URL
-
-### E. Configure Google Sheets backend
-1. Create a new Google Sheet.
-2. Open **Extensions > Apps Script**.
-3. Replace the default script with the contents of:
-   - `D:\repos\GasSensor-ESP32\GoogleSheets-Backend\Code.gs`
-4. Deploy as **Web App**.
-5. Set:
-   - **Execute as:** Me
-   - **Who has access:** Anyone
-6. Copy the deployment URL.
-7. Put that URL into `arduino_secrets.h` as the backend URL.
-8. Redeploy the Apps Script whenever the backend code is updated.
-
-### F. About Blynk
-The current system architecture uses **Arduino Cloud** and **Google Sheets + Apps Script**.  
-**Blynk is not required in the current implementation.**
-
-### G. Uploading the code
-1. Connect the ESP32 to the computer.
-2. Open Arduino IDE.
-3. Select the correct ESP32 board.
-4. Select the correct COM port.
-5. Upload the sketch.
-6. Open Serial Monitor at **115200 baud**.
-7. Wait for the ESP32 to connect to WiFi and print its local IP address.
+### Usage flow
+1. Power the device.
+2. Wait for WiFi connection.
+3. Open the IP address shown in Serial Monitor.
+4. Use the website to monitor current readings.
+5. Open saved data or history sections when needed.
 
 ---
 
-## 5. Usage Instructions
+## 5. Troubleshooting
 
-### Accessing live data
-After upload and successful WiFi connection:
-1. Connect your phone or laptop to the **same WiFi network** as the ESP32.
-2. Open the IP address shown in the Serial Monitor.
-3. The local webpage will display:
-   - Temperature
-   - Humidity
-   - Gas level
-   - Live graphs
-   - Session information
-
-### Available local dashboard routes
-- `/` -> main dashboard
-- `/data` -> current sensor data
-- `/history` -> recent local history
-- `/download` -> downloadable data output
-
-### Cloud usage
-Arduino Cloud receives:
-- Temperature
-- Humidity
-- Gas readings
-
-This allows cloud-side monitoring in addition to the local webpage.
-
-### Session logging
-- Each power-on run is treated as one **session**.
-- Readings are sent to the Google Sheets backend.
-- Saved sessions can be reviewed from the web interface.
-- Data can also be exported for analysis.
-
-### Important usage note about gas values
-The gas reading is currently a **raw ADC value**, not a calibrated PPM value.  
-This is acceptable for prototype and academic demonstration purposes, but it should not be treated as a certified gas measurement.
+### Common issues
+- No power: check the USB cable and power source
+- No IP address shown: check WiFi settings and restart the device
+- Website not opening: make sure both devices are on the same WiFi network
+- No sensor readings: check wiring and sensor connections
+- Saved data not working: recheck the Google Sheets backend setup
 
 ---
 
-## 6. Troubleshooting
+## 6. Maintenance
 
-### 1. ESP32 does not power on
-- Check the USB cable.
-- Try another USB port.
-- Use a known working laptop USB port or power bank.
-- Avoid suspicious power adapters.
+To keep the device working properly:
 
-### 2. Code does not upload
-- Check that the correct ESP32 board is selected.
-- Check the correct COM port.
-- Reconnect the board.
-- Install the ESP32 board package if missing.
-
-### 3. No readings from DHT11
-- Check VCC, GND, and DATA wiring.
-- Confirm DATA is connected to **GPIO 4**.
-- If using a bare sensor, make sure there is a **10k pull-up resistor**.
-- Check for loose wires or cold solder joints.
-
-### 4. MQ135 readings seem wrong or unstable
-- Check that AO is connected to **GPIO 32**.
-- Make sure the module is powered correctly.
-- If using 5V on MQ135, verify the voltage divider is present.
-- Inspect for poor soldering or unstable power.
-
-### 5. ESP32 connects to WiFi but local webpage does not open
-- Make sure the viewing device is on the **same network**.
-- Recheck the IP address in Serial Monitor.
-- Refresh the page.
-- Try accessing from a laptop if a phone hotspot setup fails.
-
-### 6. Arduino Cloud does not update
-- Recheck the Thing ID, device credentials, and cloud variable names.
-- Verify WiFi internet connection.
-- Confirm all required libraries are installed.
-
-### 7. Google Sheets backend does not save data
-- Check that the Apps Script web app is deployed.
-- Confirm the URL in `arduino_secrets.h` is correct.
-- Redeploy the Apps Script after backend changes.
-- Test the web app URL manually in a browser.
-
-### 8. Device resets or behaves strangely
-- Check for shorts, solder bridges, and weak connections.
-- Inspect power and GND lines carefully.
-- Verify the MQ135 analog signal is not exceeding safe ESP32 voltage.
+- Keep it away from dust and water
+- Keep ventilation areas clear
+- Do not expose it to rough handling
+- Keep it away from children
+- Check wires and sensor connections if readings become unstable
 
 ---
 
-## 7. Maintenance
+## 7. Warranty and Support
 
-To keep the system functioning properly, perform the following maintenance regularly:
+This project is an academic prototype and has no formal commercial warranty.
 
-### Hardware maintenance
-- Inspect wiring and solder joints for looseness or corrosion.
-- Keep sensor surfaces free from dust.
-- Make sure the enclosure ventilation holes are not blocked.
-- Do not expose the system to rain or outdoor moisture.
-- Avoid trapping heat inside the enclosure.
-
-### Software maintenance
-- Back up the Arduino sketch and backend files.
-- Redeploy Google Apps Script if backend logic is changed.
-- Recheck Arduino Cloud settings if cloud sync stops working.
-
-### Safety maintenance
-- Inspect power wiring before each major use.
-- Do not power the system if there are visible shorts or damaged wires.
-- Replace damaged jumper wires or connectors immediately.
-
----
-
-## 8. Warranty and Support
-
-This project is an academic prototype for educational use. No formal commercial warranty is provided.
-
-### Support contact
-For technical questions, setup concerns, or project support, contact:
-- **Website:** `joemidpan.com`
-- **Email:** `jridpan1225@gmail.com`
+For support or questions, contact:
+- Website: joemidpan.com
+- Email: jridpan1225@gmail.com
 
 ---
 
 ## Summary
 
-This ESP32 monitoring system provides:
-- Real-time temperature, humidity, and gas monitoring
-- Local browser dashboard access
-- Arduino Cloud telemetry
-- Google Sheets session logging
-- Exportable session data for analysis
-
-It is intended as a functional academic project prototype with practical monitoring features and expandable architecture.
+This monitoring system allows the user to:
+- monitor temperature, humidity, and gas values
+- access the system through a browser on the same WiFi
+- review saved data when backend logging is enabled
+- use a simple and practical ESP32-based monitoring setup for academic purposes

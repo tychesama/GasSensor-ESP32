@@ -22,15 +22,17 @@ function doPost(e) {
     const body = e && e.postData && e.postData.contents
       ? JSON.parse(e.postData.contents)
       : {};
+    const params = (e && e.parameter) || {};
 
-    const action = body.action || 'log_reading';
+    const action = body.action || params.action || 'log_reading';
+    const merged = Object.assign({}, params, body);
 
     if (action === 'log_reading') {
-      return jsonOut(logReading(body));
+      return jsonOut(logReading(merged));
     }
 
     if (action === 'delete_session') {
-      return jsonOut(deleteSession(body));
+      return jsonOut(deleteSession(merged));
     }
 
     return jsonOut({ ok: false, error: 'Unknown action' });
@@ -239,10 +241,11 @@ function deleteSession(body) {
 }
 
 function deleteRowsBySessionId_(sheet, sessionId) {
+  const target = String(sessionId).trim();
   const values = sheet.getDataRange().getValues();
   let deleted = 0;
   for (let i = values.length - 1; i >= 1; i--) {
-    if (String(values[i][0]) === String(sessionId)) {
+    if (String(values[i][0]).trim() === target) {
       sheet.deleteRow(i + 1);
       deleted++;
     }

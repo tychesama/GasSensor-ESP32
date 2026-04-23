@@ -140,6 +140,7 @@ void initSessionIdentity() {
 
 void postReadingToBackend() {
   if (WiFi.status() != WL_CONNECTED || sessionId.length() == 0) return;
+  if (!(haveTemp && haveHum && haveGas)) return;
 
   HTTPClient http;
   http.setTimeout(8000);
@@ -176,9 +177,9 @@ void postReadingToBackend() {
 
 void handleData() {
   String out = "{";
-  out += "\"temp\":"   + jf(latestT, 1) + ",";
-  out += "\"hum\":"    + jf(latestH, 0) + ",";
-  out += "\"gas\":"    + String(latestG) + ",";
+  out += "\"temp\":"   + (haveTemp ? jf(latestT, 1) : "null") + ",";
+  out += "\"hum\":"    + (haveHum ? jf(latestH, 0) : "null") + ",";
+  out += "\"gas\":"    + (haveGas ? String(latestG) : "null") + ",";
   out += "\"uptime\":" + String(millis()) + ",";
   out += "\"wifi\":"   + String((WiFi.status() == WL_CONNECTED) ? "true" : "false") + ",";
   out += "\"session\":\"" + jsonEscape(sessionName) + "\",";
@@ -819,7 +820,9 @@ function getProfile(kind,val){
   return {badge:'EXTREME',color:'var(--red)',html:adviceHtml('Gas level critical','Gas concentration is extremely high.','Prevent buildup by monitoring in a well-ventilated area.','Evacuate the area, ventilate aggressively, and seek assistance if needed.')};
 }
 function updateUI(p,val,overlay){
-  document.getElementById(p+'V').innerHTML = val + (units[p] ? '<span class="reading-unit">'+units[p]+'</span>' : '');
+  if(val === null || typeof val === 'undefined' || Number.isNaN(Number(val))) return;
+  const shown = p==='t' ? Number(val).toFixed(1) : Number(val).toFixed(0);
+  document.getElementById(p+'V').innerHTML = shown + (units[p] ? '<span class="reading-unit">'+units[p]+'</span>' : '');
   document.getElementById(p+'T').textContent = 'updated ' + stamp();
   overlay.classList.add('gone');
   const profile=getProfile(p,val);
@@ -880,8 +883,10 @@ function poll(){
     }
     const now=Date.now(), winStart=now-liveWindowMs;
     Object.keys(charts).forEach(p=>{
-      const val=parseFloat(d[KEYS[p]]);
-      if(isNaN(val) || val===0) return;
+      const raw=d[KEYS[p]];
+      if(raw === null || typeof raw === 'undefined' || raw === '') return;
+      const val=Number(raw);
+      if(Number.isNaN(val) || val===0) return;
       const ds=charts[p].data.datasets[0].data;
       addPoint(ds,{x:now,y:val});
       while(ds.length && ds[0].x < winStart-5000) ds.shift();
@@ -908,30 +913,15 @@ function renderSavedSessions(items){
         '<div class="saved-name">'+formatReadableDate(s.started_at)+'</div>'+
         '<div class="saved-meta">ID: '+s.session_id+' | '+s.sample_count+' samples</div>'+
       '</div>'+
-      '<button class="delete-btn" data-delete="'+s.session_id+'">DELETE</button>'+
     '</div>'+
   '</div>').join('');
-  list.querySelectorAll('.saved-item').forEach(el=>el.onclick=ev=>{ if(savedLoading) return; if(ev.target && ev.target.dataset && ev.target.dataset.delete) return; loadSavedSession(el.dataset.session,el); });
-  list.querySelectorAll('.delete-btn').forEach(btn=>btn.onclick=ev=>{ ev.stopPropagation(); deleteSavedSession(btn.dataset.delete); });
+  list.querySelectorAll('.saved-item').forEach(el=>el.onclick=ev=>{ if(savedLoading) return; loadSavedSession(el.dataset.session,el); });
   loadSavedSession(filtered[0].session_id,list.querySelector('.saved-item'));
 }
 function loadSavedSessions(){
   fetch('/backend/sessions').then(r=>r.json()).then(data=>renderSavedSessions(data.sessions||[])).catch(()=>{
     document.getElementById('savedSessionsList').innerHTML='<div class="saved-empty">Failed to load saved sessions.</div>';
   });
-}
-function deleteSavedSession(sessionId){
-  if(savedLoading) return;
-  if(!confirm('Delete session '+sessionId+'?')) return;
-  setSavedLoading(true);
-  fetch('/backend/delete-session?session_id='+encodeURIComponent(sessionId), { method:'POST' })
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.ok) throw new Error('delete failed');
-      loadSavedSessions();
-    })
-    .catch(()=>{ alert('Failed to delete session'); })
-    .finally(()=>setSavedLoading(false));
 }
 function loadSavedSession(sessionId,el){
   if(savedLoading) return;
@@ -978,27 +968,36 @@ void handleRoot() {
 }
 
 void sampleSensors() {
-  latestG = analogRead(GAS_PIN);
-  haveGas = true;
-
+  int gas = analogRead(GAS_PIN);
   float h = dht.readHumidity();
   float t = dht.readTemperature();
 
-  if (!isnan(t) && t > 0) {
+  bool validGas = gas > 0;
+  bool validTemp = !isnan(t) && t > 0;
+  bool validHum = !isnan(h) && h > 0;
+
+  if (validGas) {
+    latestG = gas;
+    haveGas = true;
+  }
+
+  if (validTemp) {
     latestT = t;
     haveTemp = true;
   }
 
-  if (!isnan(h) && h > 0) {
+  if (validHum) {
     latestH = h;
     haveHum = true;
   }
 
-  hist[histIdx] = { millis(), latestT, latestH, latestG };
-  histIdx = (histIdx + 1) % HIST_N;
-  if (histIdx == 0) histFull = true;
+  if (haveGas && haveTemp && haveHum) {
+    hist[histIdx] = { millis(), latestT, latestH, latestG };
+    histIdx = (histIdx + 1) % HIST_N;
+    if (histIdx == 0) histFull = true;
+  }
 
-  Serial.printf("T=%.1f C  H=%.0f %%  G=%d\n", latestT, latestH, latestG);
+  Serial.printf("T=%.1f C  H=%.0f %%  G=%d  valid=%d%d%d\n", latestT, latestH, latestG, validTemp ? 1 : 0, validHum ? 1 : 0, validGas ? 1 : 0);
 }
 
 void pushToCloud() {
